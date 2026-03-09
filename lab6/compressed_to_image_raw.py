@@ -2,8 +2,8 @@ import rclpy
 from rclpy.node import Node
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
-# TODO: you need to import CompressedImage from sensor_msgs.msg
-# TODO: you need to import Image from sensor_msgs.msg
+from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import Image
 
 
 class CompressedImageConverter(Node):
@@ -13,16 +13,14 @@ class CompressedImageConverter(Node):
         self.first_frame_published = False
         self.bridge = CvBridge()
 
-        # TODO: create a new subscription:
-        # 1. The message type will be CompressedImage.
-        # 2. The topic is /camera/image/compressed
-        # 3. The callback will be self.image_callback
-        # 4. You can choose a queue size of 10
+        self.subscription = self.create_subscription(
+            CompressedImage,
+            '/camera/image/compressed',
+            self.image_callback,
+            10,
+        )
 
-        # TODO: create a new publisher:
-        # 1. The message type will be Image
-        # 2. The topic name should be /camera/image_raw
-        # 3. You can choose a queue size of 10
+        self.publisher = self.create_publisher(Image, '/camera/image_raw', 10)
 
     def image_callback(self, msg):
         # This if statement is to simply check if we have received at least one
@@ -37,17 +35,11 @@ class CompressedImageConverter(Node):
             self.first_frame_published = True
 
         try:
-            # TODO: cv_image = ...
-            # use the compressed_imgmsg_to_cv2 method of self.bridge to 
-            # convert a compressed image to a normal cv2 image. Pass in "msg" 
-            # to the method.
+            cv_image = self.bridge.compressed_imgmsg_to_cv2(msg)
 
-            # TODO: we still work with CV image, let's convert it to ROS image:
-            # image_message = ....
-            # use the cv2_to_imgmsg method of self.bridge to do this. You need
-            # to provide 2 arguments: the cv_image and the "bgr8" string
+            image_message = self.bridge.cv2_to_imgmsg(cv_image, 'bgr8')
 
-            # TODO: now simply publish the image_message using your publisher.
+            self.publisher.publish(image_message)
 
         except CvBridgeError as e:
             print(f'Could not convert image: {e}')
